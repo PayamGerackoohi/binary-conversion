@@ -1,0 +1,212 @@
+name: Build, Test and Deployment on Desktop Platforms (Ubuntu, MacOS, Windows)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  gtest-version: 1.14.0
+  gtest-lib-url: https://github.com/PayamGerackoohi/gtest-libs/releases
+
+jobs:
+  cache-gtest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [Linux, macOS, Windows]
+    steps:
+      - name: Cache the gtest lib
+        uses: actions/cache@v3.3.2
+        id: cache
+        with:
+          key: gtest-${{ env.gtest-version }}-${{ matrix.os }}
+          path: .cache
+
+      - name: Download the gtest lib
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: >
+          mkdir .cache;
+          curl -L
+          -o .cache/gtest.tgz
+          ${{ env.gtest-lib-url }}/download/v${{ env.gtest-version }}/gtest-${{ env.gtest-version }}-${{ matrix.os }}.tgz
+
+  build-test-archive:
+    runs-on: ${{ matrix.os }}
+    needs: cache-gtest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: 
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        build_type: [Release]
+        include:
+          - os: ubuntu-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+          - os: macos-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+    outputs:
+      version: ${{ steps.app-version.outputs.version }}
+      isNewTag: ${{ steps.check-version.outputs.isNewTag }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set reusable strings
+        id: strings
+        shell: bash
+        run: |
+          echo "build-output-dir=${{ github.workspace }}${d}build" >> "$GITHUB_OUTPUT"
+          echo "cache-dir=${{ github.workspace }}${d}.cache" >> "$GITHUB_OUTPUT"
+        env:
+          d: ${{ runner.os == 'Windows' && '\' || '/' }}
+
+      - name: Restore the cached GTest
+        uses: actions/cache/restore@v3.3.2
+        with:
+          key: gtest-${{ env.gtest-version }}-${{ runner.os }}
+          path: .cache
+          enableCrossOsArchive: true
+
+      - name: Decompress GTest tar file
+        working-directory: ${{ steps.strings.outputs.cache-dir }}
+        shell: bash
+        run: |
+          mkdir gtest
+          tar -xzf gtest.tgz -C gtest
+
+      - name: Install GTest lib
+        shell: bash
+        run: |
+          dst=test/gtest
+          rm -rf $dst
+          mv .cache/gtest $dst
+
+      - name: Prepare test data
+        shell: bash
+        run: |
+          dst=build/test
+          mkdir -p $dst
+          mv test/data $dst/data
+
+      - name: Configure CMake
+        run: >
+          cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -S ${{ github.workspace }}
+          -DWIN_TEST=${{ env.win-test }}
+          > build/log.txt
+        env:
+          win-test: ${{ runner.os == 'Windows' && 'ON' || 'OFF' }}
+
+      - name: Report config results
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          file="build/log.txt"
+          if [ -f $file ]; then
+            cat $file
+          fi
+  
+      - name: Build
+        run: >
+          cmake --build ${{ steps.strings.outputs.build-output-dir }}
+          --config ${{ matrix.build_type }}
+          -j8
+
+      - name: Test
+        working-directory: build/test
+        shell: bash
+        run: ./${{ env.test-runner }} --gtest_output=json > test_detail.txt
+        env:
+          test-runner: ${{ runner.os == 'Windows' && 'Release/BinaryConversionTest.exe' || 'BinaryConversionTest' }}
+
+      - name: Report test results
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          file="build/test/test_detail.txt"
+          if [ -f $file ]; then
+            cat $file
+          fi
+
+      - name: Extract app version
+        id: app-version
+        shell: bash
+        run: |
+          version=v`cat build/log.txt | grep ProjectVersion | cut -c 21-`
+          echo App Version: $version
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+  
+      - name: Check if it's a new release version
+        id: check-version
+        shell: bash
+        run: |
+          tag=`gh release list | grep -w $version || :`
+          if [[ -z "$tag" ]]; then
+            echo "isNewTag=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          version: ${{ steps.app-version.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+      - name: Gather and compress the artifacts
+        if: steps.check-version.outputs.isNewTag
+        shell: bash
+        run: |
+          rm -rf archive
+          dst=archive/files
+          mkdir -p $dst/lib
+          mkdir -p $dst/test
+          mv build/library/$subdir$lib $dst/lib/$lib
+          mv library/include $dst/lib
+          mv build/module/$subdir$module $dst/$module
+          mv build/test/test_detail.* $dst/test
+          cd archive
+          tar -czf ${{ runner.os }}.tgz -C files .
+        env:
+          subdir: ${{ runner.os == 'Windows' && 'Release/' || '' }}
+          lib: ${{ runner.os == 'Windows' && 'binary-conversion.lib' || 'libbinary-conversion.a' }}
+          module: ${{ runner.os == 'Windows' && 'BinaryConversion.exe' || 'BinaryConversion' }}
+          test: ${{ runner.os == 'Windows' && 'BinaryConversionTest.exe' || 'BinaryConversionTest' }}
+
+      - name: Archive the artifacts
+        if: steps.check-version.outputs.isNewTag
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ runner.os }}
+          path: archive/${{ runner.os }}.tgz
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-test-archive
+    if: needs.build-test-archive.outputs.isNewTag
+    env:
+      version: ${{ needs.build-test-archive.outputs.version }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download the artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: dist
+
+      - name: make release
+        run : >
+          gh release create $version
+          dist/**/*.tgz
+          --generate-notes
+          --title "Version $version"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

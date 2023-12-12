@@ -1,4 +1,5 @@
-#include "file-util.hpp"
+#include "util/file-util.hpp"
+#include <sys/stat.h>
 
 bool exists(std::string file) {
   struct stat buffer;

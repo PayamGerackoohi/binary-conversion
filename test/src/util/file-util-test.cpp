@@ -3,8 +3,8 @@
 #include <gtest/gtest.h>
 #include <string>
 
-const std::string VALID_FILE = "test/src/util/file-util-test.hpp";
-const std::string INVALID_FILE = VALID_FILE + "2";
+const std::string VALID_FILE = "data/in.txt";
+const std::string INVALID_FILE = "data/in2.txt";
 
 TEST(FileUtilSuite, exists) {
   EXPECT_TRUE(exists(VALID_FILE));

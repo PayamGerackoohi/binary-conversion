@@ -2,8 +2,6 @@
 #include "util/password-util.hpp"
 #include <gtest/gtest.h>
 
-// std::string expandPassword(Settings *settings);
-
 TEST(PasswordUtilSuite, expandPassword) {
   Settings settings;
   EXPECT_EQ(expandPassword(&settings), "3174449;9:");

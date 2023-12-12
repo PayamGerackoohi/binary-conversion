@@ -25,7 +25,7 @@ int main(int argc, const char **argv) {
 }
 
 void showVersion() {
-  cout << "Binary Conversion App - v" + VERSION << endl;
+  cout << "Binary Conversion App - v" << VERSION << endl;
   exit(0);
 }
 
@@ -36,11 +36,19 @@ void setConfig(int argc, const char **argv, Settings &settings) {
   parser.setDefault(std::move(help));
   parser.addKey(make_unique<Key<void>>(args{"h", "help"}, std::move(help)));
   parser.addKey(make_unique<Key<void>>(args{"v", "version"}, showVersion));
-  parser.addKey(make_unique<Key<void>>(args{"c", "convert"}, [&]() { settings.command = Command::Convert; }));
-  parser.addKey(make_unique<Key<string>>(args{"-i", "--input"}, [&](string value) { settings.input = value; }));
-  parser.addKey(make_unique<Key<string>>(args{"-o", "--output"}, [&](string value) { settings.output = value; }));
-  parser.addKey(make_unique<Key<string>>(args{"-p", "--password"}, [&](string value) { settings.password = value; }));
-  parser.addKey(make_unique<Key<int>>(args{"-e", "--expanded-password-size"}, [&](int value) { settings.expandedPasswordSize = value; }));
+  parser.addKey(make_unique<Key<void>>(
+      args{"c", "convert"}, [&]() { settings.command = Command::Convert; }));
+  parser.addKey(make_unique<Key<string>>(
+      args{"-i", "--input"}, [&](string value) { settings.input = value; }));
+  parser.addKey(make_unique<Key<string>>(
+      args{"-o", "--output"}, [&](string value) { settings.output = value; }));
+  parser.addKey(
+      make_unique<Key<string>>(args{"-p", "--password"}, [&](string value) {
+        settings.password = value;
+      }));
+  parser.addKey(make_unique<Key<int>>(
+      args{"-e", "--expanded-password-size"},
+      [&](int value) { settings.expandedPasswordSize = value; }));
   parser.parse(argc, argv);
 }
 
@@ -55,7 +63,8 @@ void checkCommands(Settings *settings) {
     convert(settings);
     break;
   default:
-    cerr << payam::red << "Invalid command: '" << settings->command << "'" << endl;
+    cerr << payam::red << "Invalid command: '" << settings->command << "'"
+         << endl;
     exit(1);
   }
 }

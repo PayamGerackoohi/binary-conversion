@@ -1,6 +1,6 @@
-#include "password-util.hpp"
-#include "../constants.hpp"
-#include "../data/rune.hpp"
+#include "util/password-util.hpp"
+#include "constants.hpp"
+#include "data/rune.hpp"
 #include <sstream>
 
 std::string expandPassword(Settings *settings) {

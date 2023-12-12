@@ -1,7 +1,4 @@
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin)
 include_directories(src)
-add_executable(${pn}
-	src/main.cpp
-)
-target_include_directories(${pn} PRIVATE ../library/src)
-target_link_libraries(${pn} PRIVATE ${lib})
+add_executable(${PROJECT_NAME} src/main.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE ../library/include)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${libraryName})

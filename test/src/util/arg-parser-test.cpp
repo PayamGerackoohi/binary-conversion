@@ -13,7 +13,8 @@ TEST(ArgParserTestSuite, parse) {
   ArgParser parser;
   using args = std::initializer_list<std::string>;
   parser.setDefault([]() { settings.add(TestSettings::Arg::Default); });
-  parser.addKey(std::make_unique<Key<void>>(args{"h", "help"}, [&]() { settings.add(TestSettings::Arg::Help); }));
+  parser.addKey(std::make_unique<Key<void>>(args{"h", "help"},
+                                            [&]() { settings.add(TestSettings::Arg::Help); }));
   parser.addKey(std::make_unique<Key<void>>(args{"v", "version"}, showVersion));
   parser.addKey(std::make_unique<Key<void>>(args{"--info"}, Info()));
   parser.addKey(std::make_unique<Key<string>>(args{"-i", "--input"}, [&](string s) {
@@ -46,7 +47,7 @@ TEST(ArgParserTestSuite, parse) {
 void testArgs(ArgParser &parser, std::vector<const char *> list, int flag) {
   settings.reset();
   list.emplace(list.begin(), "");
-  parser.parse(list.size(), list.data());
+  parser.parse(static_cast<int>(list.size()), list.data());
   EXPECT_EQ(settings.diff(flag), 0);
 }
 

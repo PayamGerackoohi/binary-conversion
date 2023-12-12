@@ -1,22 +1,12 @@
-set(pn binary-conversion)
-# set(lib ${pn}-lib)
-set(lib bc)
-set(test ${pn}-test)
-project(${pn})
-
 cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(BuildModule "Build Module" ON)
-option(BuildTest "Build Test" OFF)
+project(BinaryConversion VERSION 1.0.0)
+message(STATUS "ProjectVersion = ${CMAKE_PROJECT_VERSION}")
+add_compile_definitions(VERSION="${CMAKE_PROJECT_VERSION}")
 
+set(libraryName binary-conversion)
 add_subdirectory(library)
-
-if(BuildModule)
-	add_subdirectory(module)
-endif(BuildModule)
-
-if(BuildTest)
-	add_subdirectory(test)
-endif(BuildTest)
+add_subdirectory(module)
+add_subdirectory(test)

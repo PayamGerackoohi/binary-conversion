@@ -1,9 +1,13 @@
 #ifndef ARG_PARSER_HPP
 #define ARG_PARSER_HPP
 
-#include "../data/key.hpp"
+#include "data/key.hpp"
 #include "util/color.hpp"
+#include <functional>
 #include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
 
 class ArgParser {
 public:
@@ -25,7 +29,8 @@ private:
   inline void voidKey(Key<void> *);
   inline void stringKey(Key<std::string> *, int &index);
   inline void intKey(Key<int> *, int &index);
-  template <typename T> void handleKey(Key<T> *key, int &i, std::function<T(std::string)> converter);
+  template <typename T>
+  void handleKey(Key<T> *key, int &i, std::function<T(std::string)> converter);
 };
 
 #include "arg-parser.tpp"

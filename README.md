@@ -5,14 +5,22 @@
 - sh
   - Unix
   - Windows: [Git](https://git-scm.com/downloads)
+- [Gtest](https://github.com/google/googletest.git)
+
+## Config
+### Unix
+```sh
+./scripts/config.sh
+```
+
+### Windows
+```sh
+./scripts/config.sh win
+```
 
 ## Build
 ```sh
-echo Config Cmake
-ccmake .
-
-echo Build and Run
-./run.sh -b
+./scripts/build.sh
 ```
 
 ### Build Types
@@ -25,15 +33,10 @@ echo Build and Run
 
 ## Run
 ```sh
-echo Run with 'v' command
-./run v
+./scripts/run.sh
 ```
-
-## Output
-bin/binary-conversion
 
 ## Test
 ```sh
-echo c c g q | ccmake -DBuildModule=0 -DBuildTest=1
-./run.sh -b
+./scripts/test.sh
 ```
